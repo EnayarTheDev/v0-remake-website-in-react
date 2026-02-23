@@ -21,27 +21,35 @@ export default function Home() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const supabase = createClient();
-      const { data: { user }, error } = await supabase.auth.getUser();
-      
-      if (!user) {
+      try {
+        const supabase = createClient();
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setUser(null);
+          setUserRole(null);
+          setIsLoading(false);
+          return;
+        }
+
+        setUser(user);
+        
+        // Get user role from profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+        setUserRole(profile?.role || 'user');
+        setIsLoading(false);
+      } catch (err) {
+        // Supabase not configured yet, show public view
+        console.log("[v0] Auth check skipped:", err);
         setUser(null);
         setUserRole(null);
         setIsLoading(false);
-        return;
       }
-
-      setUser(user);
-      
-      // Get user role from profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      setUserRole(profile?.role || 'user');
-      setIsLoading(false);
     };
 
     checkAuth();

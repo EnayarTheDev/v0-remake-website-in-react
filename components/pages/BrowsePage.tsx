@@ -40,10 +40,10 @@ export default function BrowsePage({ onSelectBook, user }: BrowsePageProps) {
   }, [filters]);
 
   const loadBooks = async () => {
-    const supabase = createClient();
     setIsLoading(true);
 
     try {
+      const supabase = createClient();
       let query = supabase
         .from('books')
         .select('*, profiles(first_name, last_name, email)')
@@ -61,7 +61,12 @@ export default function BrowsePage({ onSelectBook, user }: BrowsePageProps) {
 
       const { data, error } = await query.order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.log("[v0] Database not ready, showing demo mode");
+        setBooks([]);
+        setIsLoading(false);
+        return;
+      }
 
       const formattedBooks = data?.map(b => ({
         ...b,
@@ -71,7 +76,8 @@ export default function BrowsePage({ onSelectBook, user }: BrowsePageProps) {
 
       setBooks(formattedBooks);
     } catch (err) {
-      console.error('Error loading books:', err);
+      console.log("[v0] Demo mode - database unavailable");
+      setBooks([]);
     } finally {
       setIsLoading(false);
     }

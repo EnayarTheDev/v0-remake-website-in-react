@@ -16,8 +16,12 @@ export default function Navigation({ currentPage, setCurrentPage, user, userRole
   const [showDropdown, setShowDropdown] = useState(false);
 
   const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.log("[v0] Logout error (expected in demo mode)");
+    }
     router.push('/');
   };
 
