@@ -1,122 +1,153 @@
 'use client';
 
-import { useLanguage } from '@/context/LanguageContext';
-import { useBooks } from '@/context/BooksContext';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import { useState } from 'react';
 
 interface NavigationProps {
   currentPage: string;
   setCurrentPage: (page: string) => void;
+  user: any;
+  userRole: string | null;
 }
 
-export default function Navigation({ currentPage, setCurrentPage }: NavigationProps) {
-  const { language, setLanguage, t } = useLanguage();
-  const { bcBalance } = useBooks();
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
+export default function Navigation({ currentPage, setCurrentPage, user, userRole }: NavigationProps) {
+  const router = useRouter();
+  const [showDropdown, setShowDropdown] = useState(false);
 
-  const isArabic = language === 'ar';
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/');
+  };
 
   return (
-    <nav
-      className="sticky top-0 z-100 bg-white shadow-lg"
-      dir={isArabic ? 'rtl' : 'ltr'}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <div className="flex items-center">
-            <div className="text-2xl font-bold bg-gradient-to-r from-green-500 to-blue-500 bg-clip-text text-transparent">
-              📚 ReBook
-            </div>
-          </div>
+    <nav className="sticky top-0 z-50 bg-white shadow-md border-b-2 border-gray-100">
+      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        {/* Logo */}
+        <div
+          onClick={() => {
+            setCurrentPage('home');
+            router.push('/');
+          }}
+          className="cursor-pointer flex items-center gap-2"
+        >
+          <span className="text-3xl font-bold bg-gradient-to-r from-green-500 to-blue-500 bg-clip-text text-transparent">
+            SwapBook
+          </span>
+        </div>
 
-          {/* Nav Links */}
-          <div className="flex gap-6 items-center">
-            <button
-              onClick={() => setCurrentPage('home')}
-              className={`font-medium transition-all ${
-                currentPage === 'home'
-                  ? 'text-green-500 border-b-2 border-green-500'
-                  : 'text-gray-700 hover:text-green-500'
-              }`}
-            >
-              {t('nav_home')}
-            </button>
-            <button
-              onClick={() => setCurrentPage('browse')}
-              className={`font-medium transition-all ${
-                currentPage === 'browse'
-                  ? 'text-green-500 border-b-2 border-green-500'
-                  : 'text-gray-700 hover:text-green-500'
-              }`}
-            >
-              {t('nav_browse')}
-            </button>
-            <button
-              onClick={() => setCurrentPage('sell')}
-              className={`font-medium transition-all ${
-                currentPage === 'sell'
-                  ? 'text-green-500 border-b-2 border-green-500'
-                  : 'text-gray-700 hover:text-green-500'
-              }`}
-            >
-              {t('nav_sell')}
-            </button>
-            <button
-              onClick={() => setCurrentPage('messages')}
-              className={`font-medium transition-all relative ${
-                currentPage === 'messages'
-                  ? 'text-green-500 border-b-2 border-green-500'
-                  : 'text-gray-700 hover:text-green-500'
-              }`}
-            >
-              {t('nav_messages')}
-            </button>
-          </div>
-
-          {/* BC Balance */}
-          <div className="flex items-center gap-8">
-            <div className="bg-gradient-to-r from-amber-400 to-yellow-300 px-4 py-2 rounded-full flex items-center gap-2 shadow-md border-4 border-orange-500">
-              <span className="text-2xl animate-pulse">💰</span>
-              <div className="flex flex-col text-sm">
-                <span className="text-xs text-gray-700 font-medium">{t('bc_balance')}</span>
-                <span className="font-bold text-gray-900 text-lg">{bcBalance}</span>
-              </div>
-              <span className="text-xs font-semibold text-gray-700">{t('bc_currency')}</span>
-            </div>
-
-            {/* Theme Shop */}
-            <button className="text-2xl hover:scale-110 transition-transform">
-              🎨
-            </button>
-
-            {/* Profile Button */}
-            <div className="relative">
+        {/* Navigation Links */}
+        <div className="flex items-center gap-6">
+          {user ? (
+            <>
               <button
-                onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="text-2xl hover:scale-110 transition-transform"
+                onClick={() => setCurrentPage('home')}
+                className={`font-semibold transition-colors ${
+                  currentPage === 'home' ? 'text-green-600' : 'text-gray-700 hover:text-green-500'
+                }`}
               >
-                👤
+                Home
               </button>
-            </div>
 
-            {/* Language Switcher */}
-            <div className="flex gap-1 bg-gray-100 p-1 rounded-full">
-              {['fr', 'en', 'ar'].map((lang) => (
+              <button
+                onClick={() => setCurrentPage('browse')}
+                className={`font-semibold transition-colors ${
+                  currentPage === 'browse' ? 'text-green-600' : 'text-gray-700 hover:text-green-500'
+                }`}
+              >
+                Browse
+              </button>
+
+              <button
+                onClick={() => setCurrentPage('offer')}
+                className={`font-semibold transition-colors ${
+                  currentPage === 'offer' ? 'text-green-600' : 'text-gray-700 hover:text-green-500'
+                }`}
+              >
+                Offer Books
+              </button>
+
+              <button
+                onClick={() => setCurrentPage('notifications')}
+                className={`font-semibold transition-colors relative ${
+                  currentPage === 'notifications' ? 'text-green-600' : 'text-gray-700 hover:text-green-500'
+                }`}
+              >
+                Notifications
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  •
+                </span>
+              </button>
+
+              {(userRole === 'admin' || userRole === 'owner') && (
                 <button
-                  key={lang}
-                  onClick={() => setLanguage(lang as 'fr' | 'en' | 'ar')}
-                  className={`px-3 py-1 rounded-full font-semibold text-sm transition-all ${
-                    language === lang
-                      ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-md'
-                      : 'text-gray-700 hover:bg-gray-200'
+                  onClick={() => setCurrentPage('admin')}
+                  className={`font-semibold transition-colors ${
+                    currentPage === 'admin' ? 'text-red-600' : 'text-gray-700 hover:text-red-500'
                   }`}
                 >
-                  {lang.toUpperCase()}
+                  Admin
                 </button>
-              ))}
-            </div>
-          </div>
+              )}
+
+              {/* User Menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="text-gray-700 hover:text-green-500 font-semibold px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  {user.email?.split('@')[0]}
+                </button>
+
+                {showDropdown && (
+                  <div className="absolute right-0 mt-2 bg-white shadow-lg rounded-lg py-2 w-48 z-50 border border-gray-200">
+                    <p className="px-4 py-2 text-sm text-gray-600 border-b border-gray-200 truncate">
+                      {user.email}
+                    </p>
+                    {userRole && (
+                      <p className="px-4 py-2 text-sm text-gray-600 border-b border-gray-200">
+                        Role: <span className="font-semibold capitalize">{userRole}</span>
+                      </p>
+                    )}
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 font-semibold transition-colors"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setCurrentPage('home')}
+                className={`font-semibold transition-colors ${
+                  currentPage === 'home' ? 'text-green-600' : 'text-gray-700 hover:text-green-500'
+                }`}
+              >
+                Home
+              </button>
+
+              <button
+                onClick={() => setCurrentPage('browse')}
+                className={`font-semibold transition-colors ${
+                  currentPage === 'browse' ? 'text-green-600' : 'text-gray-700 hover:text-green-500'
+                }`}
+              >
+                Browse
+              </button>
+
+              <button
+                onClick={() => router.push('/auth/request-approval')}
+                className="bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:shadow-lg transition-all"
+              >
+                Get Started
+              </button>
+            </>
+          )}
         </div>
       </div>
     </nav>

@@ -1,146 +1,196 @@
 'use client';
 
-import { useState } from 'react';
-import { useLanguage } from '@/context/LanguageContext';
-import { useBooks } from '@/context/BooksContext';
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
 
-interface BrowsePageProps {
-  onSelectBook: (bookId: number) => void;
+interface Book {
+  id: string;
+  title: string;
+  subject: string;
+  level: string;
+  condition: string;
+  description: string;
+  user_id: string;
+  owner_name: string;
+  owner_email: string;
+  is_available: boolean;
 }
 
-export default function BrowsePage({ onSelectBook }: BrowsePageProps) {
-  const { t, language } = useLanguage();
-  const { books } = useBooks();
-  const isArabic = language === 'ar';
+interface BrowsePageProps {
+  onSelectBook: (bookId: string) => void;
+  user: any;
+}
+
+export default function BrowsePage({ onSelectBook, user }: BrowsePageProps) {
+  const [books, setBooks] = useState<Book[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [filters, setFilters] = useState({
     subject: '',
     level: '',
-    condition: ''
+    condition: '',
   });
 
-  const filteredBooks = books.filter(book => {
-    if (filters.subject && book.subject !== filters.subject) return false;
-    if (filters.level && book.level !== filters.level) return false;
-    if (filters.condition && book.condition !== filters.condition) return false;
-    return !book.sold;
-  });
+  const subjects = ['math', 'physics', 'french', 'english', 'history', 'geography', 'chemistry', 'biology'];
+  const levels = ['6ème', '5ème', '4ème', '3ème', '2nde', '1ère', 'terminale'];
+  const conditions = ['excellent', 'good', 'fair'];
 
-  const conditionBadgeColors: Record<string, string> = {
-    excellent: 'bg-green-500',
-    good: 'bg-blue-500',
-    fair: 'bg-amber-400'
+  useEffect(() => {
+    loadBooks();
+  }, [filters]);
+
+  const loadBooks = async () => {
+    const supabase = createClient();
+    setIsLoading(true);
+
+    try {
+      let query = supabase
+        .from('books')
+        .select('*, profiles(first_name, last_name, email)')
+        .eq('is_available', true);
+
+      if (filters.subject) {
+        query = query.eq('subject', filters.subject);
+      }
+      if (filters.level) {
+        query = query.eq('level', filters.level);
+      }
+      if (filters.condition) {
+        query = query.eq('condition', filters.condition);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedBooks = data?.map(b => ({
+        ...b,
+        owner_name: b.profiles ? `${b.profiles.first_name} ${b.profiles.last_name}` : 'Unknown',
+        owner_email: b.profiles?.email || '',
+      })) || [];
+
+      setBooks(formattedBooks);
+    } catch (err) {
+      console.error('Error loading books:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
+  const filteredBooks = books.filter(book => {
+    // Don't show own books
+    if (user && book.user_id === user.id) return false;
+    return true;
+  });
+
   return (
-    <div dir={isArabic ? 'rtl' : 'ltr'} className="space-y-6">
-      <h1 className="text-4xl font-bold text-gray-800">{t('browse_title')}</h1>
+    <div className="max-w-6xl mx-auto">
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">Browse Available Books</h1>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-blue-500">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              {t('filter_subject')}
+              Subject
             </label>
             <select
               value={filters.subject}
               onChange={(e) => setFilters({ ...filters, subject: e.target.value })}
-              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-green-500"
             >
-              <option value="">{t('filter_all')}</option>
-              <option value="math">{t('subject_math')}</option>
-              <option value="physics">{t('subject_physics')}</option>
-              <option value="french">{t('subject_french')}</option>
-              <option value="english">{t('subject_english')}</option>
-              <option value="history">{t('subject_history')}</option>
+              <option value="">All Subjects</option>
+              {subjects.map((s) => (
+                <option key={s} value={s}>
+                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                </option>
+              ))}
             </select>
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              {t('filter_level')}
+              Level
             </label>
             <select
               value={filters.level}
               onChange={(e) => setFilters({ ...filters, level: e.target.value })}
-              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-green-500"
             >
-              <option value="">{t('filter_all')}</option>
-              <option value="college">{t('level_college')}</option>
-              <option value="lycee">{t('level_lycee')}</option>
+              <option value="">All Levels</option>
+              {levels.map((l) => (
+                <option key={l} value={l}>
+                  {l}
+                </option>
+              ))}
             </select>
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              {t('filter_condition')}
+              Condition
             </label>
             <select
               value={filters.condition}
               onChange={(e) => setFilters({ ...filters, condition: e.target.value })}
-              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-green-500"
             >
-              <option value="">{t('filter_all')}</option>
-              <option value="excellent">{t('condition_excellent')}</option>
-              <option value="good">{t('condition_good')}</option>
-              <option value="fair">{t('condition_fair')}</option>
+              <option value="">All Conditions</option>
+              {conditions.map((c) => (
+                <option key={c} value={c}>
+                  {c.charAt(0).toUpperCase() + c.slice(1)}
+                </option>
+              ))}
             </select>
           </div>
-
-
         </div>
       </div>
 
       {/* Books Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredBooks.length > 0 ? (
-          filteredBooks.map(book => (
+      {isLoading ? (
+        <div className="text-center py-12">Loading books...</div>
+      ) : filteredBooks.length === 0 ? (
+        <div className="bg-gray-50 rounded-lg p-12 text-center">
+          <p className="text-gray-600 text-lg">No books found matching your filters</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredBooks.map((book) => (
             <div
               key={book.id}
               onClick={() => onSelectBook(book.id)}
-              className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl hover:border-green-500 hover:-translate-y-2 transition-all border-3 border-transparent cursor-pointer"
+              className="bg-white rounded-lg shadow-md hover:shadow-xl hover:scale-105 transition-all cursor-pointer overflow-hidden border-2 border-gray-200 hover:border-green-500"
             >
-              {/* Image */}
-              <div className="w-full h-48 bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center text-5xl text-white">
-                📖
+              <div className="bg-gradient-to-r from-green-100 to-blue-100 p-6 h-40 flex flex-col justify-between">
+                <h3 className="font-bold text-gray-900 line-clamp-2 text-lg">{book.title}</h3>
+                <div className="text-sm text-gray-700">
+                  <p>{book.subject} • {book.level}</p>
+                </div>
               </div>
 
-              {/* Content */}
               <div className="p-4">
-                <h3 className="text-lg font-bold text-gray-800 mb-2 line-clamp-2">
-                  {book.title}
-                </h3>
-
-                <div className="text-sm text-gray-600 mb-3 space-y-1">
-                  <p>📚 {book.subject}</p>
-                  <p>🎓 {book.level}</p>
-                </div>
-
-                <div className="mb-3">
-                  <span
-                    className={`inline-block px-3 py-1 rounded-full text-white font-semibold text-xs ${
-                      conditionBadgeColors[book.condition] || 'bg-gray-500'
-                    }`}
-                  >
-                    {book.condition}
+                <div className="mb-3 pb-3 border-b border-gray-200">
+                  <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
+                    {book.condition.charAt(0).toUpperCase() + book.condition.slice(1)}
                   </span>
                 </div>
 
-                <div className="text-lg font-semibold text-green-600 mb-2">
-                  ✨ Free Swap
-                </div>
+                <p className="text-sm text-gray-600 mb-2">
+                  Offered by: <span className="font-semibold">{book.owner_name}</span>
+                </p>
 
-                <p className="text-xs text-gray-500">👤 {book.seller}</p>
+                {book.description && (
+                  <p className="text-xs text-gray-600 line-clamp-2">{book.description}</p>
+                )}
+
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-lg font-bold text-green-600">Free Swap</p>
+                </div>
               </div>
             </div>
-          ))
-        ) : (
-          <div className="col-span-full text-center py-12">
-            <p className="text-2xl text-gray-400">No books found</p>
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
