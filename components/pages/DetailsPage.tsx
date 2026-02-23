@@ -3,54 +3,46 @@
 import { useState } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useBooks } from '@/context/BooksContext';
-import PurchaseTicket from '@/components/PurchaseTicket';
 
 interface DetailsPageProps {
   bookId: number;
   setCurrentPage: (page: string) => void;
 }
 
-function generateTicketCode() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let code = '';
-  for (let i = 0; i < 12; i++) {
-    if (i > 0 && i % 4 === 0) {
-      code += '-';
-    }
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
-}
-
 export default function DetailsPage({ bookId, setCurrentPage }: DetailsPageProps) {
   const { t, language } = useLanguage();
-  const { getBook, bcBalance, setBcBalance } = useBooks();
+  const { getBook, getUserOfferedBooks, addSwapRequest } = useBooks();
   const isArabic = language === 'ar';
 
   const book = getBook(bookId);
-  const [showTicket, setShowTicket] = useState(false);
-  const [ticketCode, setTicketCode] = useState('');
-  const [ticketPaymentType, setTicketPaymentType] = useState('');
+  const [selectedBooks, setSelectedBooks] = useState<number[]>([]);
+  const [showSwapForm, setShowSwapForm] = useState(false);
+  const [swapSuccess, setSwapSuccess] = useState(false);
+  const userBooks = getUserOfferedBooks();
 
   if (!book) {
     return <div className="text-center text-gray-600 py-12">Book not found</div>;
   }
 
-  const handleBuy = (paymentType: string) => {
-    if (paymentType === 'bc' && bcBalance < book.price) {
-      alert(t('insufficient_bc'));
+  const handleInitiateSwap = () => {
+    if (selectedBooks.length === 0) {
+      alert('Please select at least one book to swap');
       return;
     }
 
-    const code = generateTicketCode();
-    setTicketCode(code);
-    setTicketPaymentType(paymentType);
+    addSwapRequest({
+      bookId: book.id,
+      requesterBooks: selectedBooks,
+      requesterName: 'You',
+      requesterContact: 'your@email.com',
+      status: 'pending'
+    });
 
-    if (paymentType === 'bc') {
-      setBcBalance(bcBalance - book.price);
-    }
-
-    setShowTicket(true);
+    setSwapSuccess(true);
+    setTimeout(() => {
+      setSwapSuccess(false);
+      setCurrentPage('browse');
+    }, 2000);
   };
 
   return (
@@ -85,9 +77,9 @@ export default function DetailsPage({ bookId, setCurrentPage }: DetailsPageProps
               </p>
             </div>
 
-            {/* Price */}
-            <div className="text-4xl font-bold text-red-500">
-              {book.price} {book.paymentType === 'bc' ? '💰 BC' : '💵 DH'}
+            {/* Free Swap Badge */}
+            <div className="text-3xl font-bold text-green-600">
+              ✨ {t('swap_title')} - Free!
             </div>
 
             {/* Seller Info */}
@@ -105,49 +97,81 @@ export default function DetailsPage({ bookId, setCurrentPage }: DetailsPageProps
               </div>
             )}
 
-            {/* Buy Buttons */}
-            <div className="space-y-3 pt-4">
-              {book.paymentType === 'cash' && (
-                <button
-                  onClick={() => handleBuy('cash')}
-                  className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold py-3 rounded-lg hover:shadow-lg hover:scale-105 transition-all"
-                >
-                  💵 {t('btn_buy_cash')} {book.price} DH
-                </button>
-              )}
-              {book.paymentType === 'bc' && (
-                <button
-                  onClick={() => handleBuy('bc')}
-                  className={`w-full font-bold py-3 rounded-lg transition-all ${
-                    bcBalance >= book.price
-                      ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-gray-800 hover:shadow-lg hover:scale-105'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
-                  disabled={bcBalance < book.price}
-                >
-                  💰 {t('btn_buy_bc')} {book.price} BC
-                </button>
-              )}
-              <button className="w-full border-2 border-red-500 text-red-500 font-bold py-3 rounded-lg hover:bg-red-50 transition-all">
-                {t('btn_report')}
+            {/* Swap Section */}
+            {showSwapForm ? (
+              <div className="space-y-3 pt-4 bg-blue-50 p-4 rounded-lg">
+                <h3 className="font-bold text-gray-800 mb-3">{t('swap_desc')}</h3>
+                {userBooks.length > 0 ? (
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {userBooks.map(userBook => (
+                      <label key={userBook.id} className="flex items-center gap-3 p-3 bg-white rounded-lg border-2 border-gray-200 hover:border-green-500 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedBooks.includes(userBook.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedBooks([...selectedBooks, userBook.id]);
+                            } else {
+                              setSelectedBooks(selectedBooks.filter(id => id !== userBook.id));
+                            }
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-800">{userBook.title}</p>
+                          <p className="text-xs text-gray-600">{userBook.subject} - {userBook.condition}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-600 text-sm">{t('no_books_offered')}</p>
+                )}
+                <div className="flex gap-2 pt-3">
+                  <button
+                    onClick={handleInitiateSwap}
+                    disabled={selectedBooks.length === 0}
+                    className={`flex-1 font-bold py-2 rounded-lg transition-all ${
+                      selectedBooks.length > 0
+                        ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white hover:shadow-lg'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    🔄 {t('btn_initiate_swap')}
+                  </button>
+                  <button
+                    onClick={() => setShowSwapForm(false)}
+                    className="px-4 font-semibold text-gray-700 border-2 border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  if (userBooks.length === 0) {
+                    setCurrentPage('sell');
+                  } else {
+                    setShowSwapForm(true);
+                  }
+                }}
+                className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold py-3 rounded-lg hover:shadow-lg hover:scale-105 transition-all"
+              >
+                {userBooks.length === 0 ? '📚 ' : '🔄 '}{t('btn_request_swap')}
               </button>
-            </div>
+            )}
+
+            {swapSuccess && (
+              <div className="bg-gradient-to-r from-green-500 to-blue-500 text-white p-4 rounded-lg font-semibold">
+                ✓ {t('swap_success')}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Purchase Ticket Modal */}
-      {showTicket && (
-        <PurchaseTicket
-          book={book}
-          ticketCode={ticketCode}
-          paymentType={ticketPaymentType}
-          onClose={() => {
-            setShowTicket(false);
-            setCurrentPage('home');
-          }}
-        />
-      )}
+
     </div>
   );
 }

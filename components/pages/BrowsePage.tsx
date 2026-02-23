@@ -16,15 +16,13 @@ export default function BrowsePage({ onSelectBook }: BrowsePageProps) {
   const [filters, setFilters] = useState({
     subject: '',
     level: '',
-    condition: '',
-    maxPrice: ''
+    condition: ''
   });
 
   const filteredBooks = books.filter(book => {
     if (filters.subject && book.subject !== filters.subject) return false;
     if (filters.level && book.level !== filters.level) return false;
     if (filters.condition && book.condition !== filters.condition) return false;
-    if (filters.maxPrice && book.price > parseInt(filters.maxPrice)) return false;
     return !book.sold;
   });
 
@@ -90,18 +88,7 @@ export default function BrowsePage({ onSelectBook }: BrowsePageProps) {
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              {t('filter_max_price')}
-            </label>
-            <input
-              type="number"
-              placeholder="200"
-              value={filters.maxPrice}
-              onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })}
-              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
-            />
-          </div>
+
         </div>
       </div>
 
@@ -140,8 +127,8 @@ export default function BrowsePage({ onSelectBook }: BrowsePageProps) {
                   </span>
                 </div>
 
-                <div className="text-2xl font-bold text-red-500 mb-2">
-                  {book.price} {book.paymentType === 'bc' ? '💰 BC' : '💵 DH'}
+                <div className="text-lg font-semibold text-green-600 mb-2">
+                  ✨ Free Swap
                 </div>
 
                 <p className="text-xs text-gray-500">👤 {book.seller}</p>

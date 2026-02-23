@@ -10,7 +10,7 @@ interface SellPageProps {
 
 export default function SellPage({ setCurrentPage }: SellPageProps) {
   const { t, language } = useLanguage();
-  const { addBook } = useBooks();
+  const { addBook, getUserOfferedBooks } = useBooks();
   const isArabic = language === 'ar';
 
   const [formData, setFormData] = useState({
@@ -18,7 +18,7 @@ export default function SellPage({ setCurrentPage }: SellPageProps) {
     subject: 'math',
     level: 'college',
     condition: 'excellent',
-    price: '',
+    price: '0',
     paymentType: 'cash',
     description: '',
     contact: ''
@@ -29,7 +29,7 @@ export default function SellPage({ setCurrentPage }: SellPageProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.title || !formData.price || !formData.contact) {
+    if (!formData.title || !formData.contact) {
       alert('Please fill in all required fields');
       return;
     }
@@ -52,7 +52,7 @@ export default function SellPage({ setCurrentPage }: SellPageProps) {
       subject: 'math',
       level: 'college',
       condition: 'excellent',
-      price: '',
+      price: '0',
       paymentType: 'cash',
       description: '',
       contact: ''
@@ -137,36 +137,6 @@ export default function SellPage({ setCurrentPage }: SellPageProps) {
               <option value="excellent">{t('condition_excellent')}</option>
               <option value="good">{t('condition_good')}</option>
               <option value="fair">{t('condition_fair')}</option>
-            </select>
-          </div>
-
-          {/* Price */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              {t('form_price')} *
-            </label>
-            <input
-              type="number"
-              required
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-red-500"
-              placeholder="0"
-            />
-          </div>
-
-          {/* Payment Type */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              {t('form_payment_type')} *
-            </label>
-            <select
-              value={formData.paymentType}
-              onChange={(e) => setFormData({ ...formData, paymentType: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-red-500"
-            >
-              <option value="cash">{t('payment_cash')}</option>
-              <option value="bc">{t('payment_bc')}</option>
             </select>
           </div>
 

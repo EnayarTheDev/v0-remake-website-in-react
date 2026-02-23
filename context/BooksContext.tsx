@@ -14,6 +14,16 @@ export interface Book {
   contact: string;
   description: string;
   sold: boolean;
+  isOffered?: boolean;
+}
+
+export interface SwapRequest {
+  id: string;
+  bookId: number;
+  requesterBooks: number[];
+  requesterName: string;
+  requesterContact: string;
+  status: 'pending' | 'accepted' | 'rejected';
 }
 
 interface BooksContextType {
@@ -22,6 +32,9 @@ interface BooksContextType {
   getBook: (id: number) => Book | undefined;
   bcBalance: number;
   setBcBalance: (balance: number) => void;
+  swapRequests: SwapRequest[];
+  addSwapRequest: (request: Omit<SwapRequest, 'id'>) => void;
+  getUserOfferedBooks: () => Book[];
 }
 
 const BooksContext = createContext<BooksContextType | undefined>(undefined);
@@ -110,12 +123,14 @@ const initialBooks: Book[] = [
 export function BooksProvider({ children }: { children: React.ReactNode }) {
   const [books, setBooks] = useState<Book[]>(initialBooks);
   const [bcBalance, setBcBalance] = useState(500);
+  const [swapRequests, setSwapRequests] = useState<SwapRequest[]>([]);
 
   const addBook = (book: Omit<Book, 'id' | 'sold'>) => {
     const newBook: Book = {
       ...book,
       id: Math.max(...books.map(b => b.id), 0) + 1,
-      sold: false
+      sold: false,
+      isOffered: true
     };
     setBooks([...books, newBook]);
   };
@@ -124,8 +139,20 @@ export function BooksProvider({ children }: { children: React.ReactNode }) {
     return books.find(b => b.id === id);
   };
 
+  const addSwapRequest = (request: Omit<SwapRequest, 'id'>) => {
+    const newRequest: SwapRequest = {
+      ...request,
+      id: `swap-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    };
+    setSwapRequests([...swapRequests, newRequest]);
+  };
+
+  const getUserOfferedBooks = () => {
+    return books.filter(b => b.isOffered && b.seller === 'You');
+  };
+
   return (
-    <BooksContext.Provider value={{ books, addBook, getBook, bcBalance, setBcBalance }}>
+    <BooksContext.Provider value={{ books, addBook, getBook, bcBalance, setBcBalance, swapRequests, addSwapRequest, getUserOfferedBooks }}>
       {children}
     </BooksContext.Provider>
   );
