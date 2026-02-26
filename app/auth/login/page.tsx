@@ -1,6 +1,6 @@
 'use client'
 
-import { createClient } from '@/lib/supabase/client'
+import { loginUser } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -24,25 +24,16 @@ export default function Page() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    const supabase = createClient()
     setIsLoading(true)
     setError(null)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-        options: {
-          emailRedirectTo:
-            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
-            `${window.location.origin}/protected`,
-        },
-      })
-      if (error) throw error
-      router.push('/protected')
+      const response = await loginUser(email, password)
+      // Store user in localStorage for demo (use proper session in production)
+      localStorage.setItem('user', JSON.stringify(response.user))
+      router.push('/')
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred')
-    } finally {
       setIsLoading(false)
     }
   }
